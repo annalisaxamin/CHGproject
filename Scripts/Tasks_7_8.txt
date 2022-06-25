@@ -1,0 +1,24 @@
+#!/bin/bash
+
+##### 7. Determine which DNA repair genes (use file DNA_Repair_Genes.bed) overlap both...
+### 7.1. ...heterozygous deletions...
+grep -E "(^chrom|del)" SCNA.copynumber.called > SCNA.copynumber.called.del
+bedtools intersect -a DNA_Repair_Genes.bed -b SCNA.copynumber.called.del > bedtools/repair..copynumber.del.bed
+bedtools intersect -a SCNA.copynumber.called.del -b DNA_Repair_Genes.bed > bedtools/copynumber.del..repair.bed
+
+### 7.2. ...and heterozygous SNPs of the patient that are in Clinvar.
+bedtools intersect -a DNA_Repair_Genes.bed -b Control.het.ann_3.CVPath.vcf > bedtools/repair..Control.het.clnvar.bed
+
+### 7.3. [both]
+bedtools intersect -a bedtools/repair..copynumber.del.bed -b bedtools/repair..Control.het.clnvar.bed > bedtools/repair..copynumber.del..Control.het.clnvar.bed
+
+##### 8. Determine which DNA repair genes overlap both...
+### 8.1 ...heterozygous deletions...
+# already performed in 7.1
+
+### 8.2 ...and somatic point mutations of the patient...
+grep -E "(^#|SOMATIC)" somatic.pm.vcf > somatic.somatic.pm.vcf
+bedtools intersect -a DNA_Repair_Genes.bed -b somatic.somatic.pm.vcf > bedtools/repair..somatic.somatic.pm.bed
+
+### 8.3. [both]
+bedtools intersect -a bedtools/repair..copynumber.del.bed -b bedtools/repair..somatic.somatic.pm.bed > bedtools/repair..copynumber.del..somatic.somatic.pm.bed

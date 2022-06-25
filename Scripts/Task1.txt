@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo “//////// Control ////////” > Control_stats.txt
+echo “//////// Tumor ////////” > Tumor_stats.txt
+
+echo “1. Properly paired reads ***************************************************” >> Control_stats.txt
+echo “1. Properly paired reads ***************************************************” >> Tumor_stats.txt
+
+samtools sort Control.bam > Control.sorted.bam
+samtools index Control.sorted.bam
+
+samtools sort Tumor.bam > Tumor.sorted.bam
+samtools index Tumor.sorted.bam
+
+echo Control Statistics > Control_stats.txt
+echo Samtools sorted >> Control_stats.txt
+samtools flagstat Control.sorted.bam >> Control_stats.txt
+
+echo Tumor Statistics > Tumor_stats.txt
+echo Samtools sorted >> Tumor_stats.txt
+samtools flagstat Tumor.sorted.bam >> Tumor_stats.txt 

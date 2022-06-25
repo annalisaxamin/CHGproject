@@ -1,0 +1,56 @@
+#!/bin/bash
+
+echo “2. Realign and recalibrate  ***************************************************” >> Control_stats.txt
+echo “2. Realign and recalibrate ***************************************************” >> Tumor_stats.txt
+
+echo +++++++ Realignment +++++++ >> Control_stats.txt
+echo +++++++ Realignment +++++++ >> Tumor_stats.txt
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T RealignerTargetCreator -R ../Annotations/human_g1k_v37.fasta -I Control.sorted.bam -o realigner.intervals -L Captured_Regions.bed
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T IndelRealigner -R ../Annotations/human_g1k_v37.fasta -I Control.sorted.bam -targetIntervals realigner.intervals -o Control.sorted.realigned.bam -L Captured_Regions.bed
+
+samtools index Control.sorted.realigned.bam
+
+samtools view Control.sorted.realigned.bam |grep OC | wc -l >> Control_stats.txt
+samtools flagstat Control.sorted.realigned.bam >> Control_stats.txt
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T RealignerTargetCreator -R ../Annotations/human_g1k_v37.fasta -I Tumor.sorted.bam -o realigner.intervals -L Captured_Regions.bed
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T IndelRealigner -R ../Annotations/human_g1k_v37.fasta -I Tumor.sorted.bam -targetIntervals realigner.intervals -o Tumor.sorted.realigned.bam -L Captured_Regions.bed
+
+samtools index Tumor.sorted.realigned.bam
+
+samtools view Tumor.sorted.realigned.bam | grep OC | wc -l >> Tumor_stats.txt
+samtools flagstat Tumor.sorted.realigned.bam >> Tumor_stats.txt
+
+echo +++++++ Recalibration +++++++ >> Control_stats.txt
+echo +++++++ Recalibration +++++++ >> Tumor_stats.txt
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T BaseRecalibrator -R ../Annotations/human_g1k_v37.fasta -I Control.sorted.realigned.bam -knownSites ../Annotations/hapmap_3.3.b37.vcf -o recal.table -L Captured_Regions.bed
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T PrintReads -R ../Annotations/human_g1k_v37.fasta -I Control.sorted.realigned.bam -BQSR recal.table -o Control.sorted.realigned.recalibrated.bam -L Captured_Regions.bed --emit_original_quals
+
+#samtools index Control.sorted.realigned.recalibrated.bam
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T BaseRecalibrator -R ../Annotations/human_g1k_v37.fasta -I Control.sorted.realigned.recalibrated.bam -knownSites ../Annotations/hapmap_3.3.b37.vcf -BQSR recal.table -o after_recal.table -L Captured_Regions.bed
+
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T AnalyzeCovariates -R ../Annotations/human_g1k_v37.fasta -before recal.table -after after_recal.table -csv recal.csv -plots Control_recal.pdf
+
+
+samtools view Control.sorted.realigned.recalibrated.bam | grep OQ | wc -l >> Control_stats.txt
+samtools flagstat Control.sorted.realigned.recalibrated.bam >> Control_stats.txt
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T BaseRecalibrator -R ../Annotations/human_g1k_v37.fasta -I Tumor.sorted.realigned.bam -knownSites ../Annotations/hapmap_3.3.b37.vcf -o recal.table -L Captured_Regions.bed
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T PrintReads -R ../Annotations/human_g1k_v37.fasta -I Tumor.sorted.realigned.bam -BQSR recal.table -o Tumor.sorted.realigned.recalibrated.bam -L Captured_Regions.bed --emit_original_quals
+
+#samtools index Tumor.sorted.realigned.recalibrated.bam
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T BaseRecalibrator -R ../Annotations/human_g1k_v37.fasta -I Tumor.sorted.realigned.recalibrated.bam -knownSites ../Annotations/hapmap_3.3.b37.vcf -BQSR recal.table -o after_recal.table -L Captured_Regions.bed
+
+java -jar ../Tools/GenomeAnalysisTK.jar -T AnalyzeCovariates -R ../Annotations/human_g1k_v37.fasta -before recal.table -after after_recal.table -csv recal.csv -plots Tumor_recal.pdf
+
+samtools view Tumor.sorted.realigned.recalibrated.bam | grep OQ | wc -l >> Tumor_stats.txt
+samtools flagstat Tumor.sorted.realigned.recalibrated.bam >> Tumor_stats.txt
